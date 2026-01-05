@@ -1,47 +1,67 @@
+// js/app.js
+
 const form = document.getElementById('battery-form');
 
 form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    // 1. Generar Metadatos e ID Único
+    // Función auxiliar para obtener valores de forma segura y evitar el error "null"
+    const getValue = (id) => {
+        const el = document.getElementById(id);
+        if (!el) {
+            console.error(`Error: No se encontró el elemento con ID: ${id}`);
+            return "";
+        }
+        return el.value;
+    };
+
+    // 1. Capturar datos coincidiendo EXACTAMENTE con los IDs del HTML
     const formData = {
         id: crypto.randomUUID(),
         timestamp: new Date().toISOString(),
         deviceType: getDeviceType(),
-        refBateria: document.getElementById('refBateria').value,
-        fechaInspeccion: document.getElementById('fechaInspeccion').value,
-        fechaFabricacion: document.getElementById('fechaFabricacion').value,
-        fechaRecarga: document.getElementById('fechaRecarga').value,
-        bornes: document.getElementById('bornes').value,
-        calcomanias: document.getElementById('calcomanias').value,
-        tapones: document.getElementById('tapones').value,
-        aspectoGeneral: document.getElementById('aspectoGeneral').value || 'OK',
-        fugas: document.getElementById('fugas').value,
-        carga: parseFloat(document.getElementById('carga').value),
-        peso: parseFloat(document.getElementById('peso').value),
-        formula: parseInt(document.getElementById('formula').value),
-        dias: parseInt(document.getElementById('dias').value),
-        inspector: document.getElementById('inspector').value,
-        observaciones: document.getElementById('observaciones').value
+        
+        // Datos del Formulario
+        refBateria: getValue('refBateria'),
+        inspector: getValue('inspector'),
+        fechaInspeccion: getValue('fechaInspeccion'),
+        fechaFabricacion: getValue('fechaFabricacion'),
+        fechaRecarga: getValue('fechaRecarga'),
+        
+        bornes: getValue('bornes'),
+        calcomanias: getValue('calcomanias'),
+        tapones: getValue('tapones'),
+        fugas: getValue('fugas'),
+        aspectoGeneral: getValue('aspectoGeneral'),
+        
+        carga: parseFloat(getValue('carga')) || 0,
+        peso: parseFloat(getValue('peso')) || 0,
+        formula: parseInt(getValue('formula')) || 0,
+        dias: parseInt(getValue('dias')) || 0,
+        
+        observaciones: getValue('observaciones')
     };
 
     try {
-        // 2. Guardar siempre en IndexedDB primero (Offline-First)
+        // 2. Guardar en IndexedDB (Capa Local)
         await saveLocal(formData);
         
-        // 3. Feedback al usuario
-        alert("Inspección guardada localmente.");
+        // 3. Feedback visual
+        alert("REGISTRO GUARDADO LOCALMENTE");
         form.reset();
 
-        // 4. Intentar sincronizar inmediatamente
-        syncData();
+        // 4. Intentar sincronizar ahora mismo
+        if (typeof syncData === 'function') {
+            syncData();
+        }
         
     } catch (err) {
         console.error("Error al guardar:", err);
-        alert("Error al guardar los datos.");
+        alert("Error crítico al guardar los datos.");
     }
 });
 
+// Detectar tipo de dispositivo
 function getDeviceType() {
     const ua = navigator.userAgent;
     if (/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(ua)) return "Tablet";
@@ -49,21 +69,21 @@ function getDeviceType() {
     return "Desktop";
 }
 
-// Actualizar indicador de conexión visual
+// Actualizar indicador de conexión
 function updateOnlineStatus() {
     const statusDot = document.getElementById('online-status');
     const statusText = document.getElementById('status-text');
     
     if (navigator.onLine) {
-        statusDot.className = "h-3 w-3 rounded-full bg-green-400 mr-2";
-        statusText.innerText = "Online";
-        syncData();
+        if(statusDot) statusDot.className = "h-2 w-2 rounded-full bg-green-600 mr-2";
+        if(statusText) statusText.innerText = "Online";
+        if (typeof syncData === 'function') syncData();
     } else {
-        statusDot.className = "h-3 w-3 rounded-full bg-red-500 mr-2";
-        statusText.innerText = "Offline";
+        if(statusDot) statusDot.className = "h-2 w-2 rounded-full bg-red-600 mr-2";
+        if(statusText) statusText.innerText = "Offline";
     }
 }
 
 window.addEventListener('online', updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
-updateOnlineStatus(); // Estado inicial
+updateOnlineStatus();
