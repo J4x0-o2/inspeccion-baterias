@@ -1,7 +1,9 @@
+// Este archivo gestiona la comunicación con Google Sheets a través de Google Apps Script, permitiendo enviar datos del formulario a una hoja de cálculo.
+
 const API_CONFIG = {
     // REEMPLAZA con la URL que te dio Google al publicar como Web App
     url: "https://script.google.com/macros/s/AKfycbyV5epXHNj8tG9CpUbvXHt8AeVRbepZcuCmeqbUn0AxDIJppvZyasqwR71nn6hXLs4D/exec",
-    // REEMPLAZA con tu clave inventada (debe ser igual a la del Code.gs)
+    // REEMPLAZA con tu clave (debe ser igual a la del Code.gs)
     key: "123KKj" 
 };
 

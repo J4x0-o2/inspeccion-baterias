@@ -1,4 +1,4 @@
-// js/app.js
+// Este archivo maneja la lógica del formulario, captura datos de baterías, los guarda localmente en IndexedDB y sincroniza con Google Sheets cuando hay conexión.
 
 const form = document.getElementById('battery-form');
 
