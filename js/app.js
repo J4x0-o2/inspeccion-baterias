@@ -35,9 +35,39 @@ function calcularDias() {
     }
 }
 
+// Rango de peso válido por referencia de batería
+const pesoRanges = {
+    '244105506R': { min: 14.80, max: 16.10, label: '14,80kg - 16,10kg' },
+    '244103318R': { min: 16.55, max: 17.97, label: '16,55kg - 17,97kg' }
+};
+
+// Función para validar el peso según la referencia de batería
+function validarPeso() {
+    const refBateria = document.getElementById('refBateria').value;
+    const pesoInput = document.getElementById('peso');
+    const peso = parseFloat(pesoInput.value);
+    
+    if (!peso || isNaN(peso)) {
+        pesoInput.classList.remove('bg-red-200', 'border-red-500');
+        return;
+    }
+    
+    const range = pesoRanges[refBateria];
+    
+    if (range && (peso < range.min || peso > range.max)) {
+        pesoInput.classList.add('bg-red-200', 'border-red-500');
+    } else {
+        pesoInput.classList.remove('bg-red-200', 'border-red-500');
+    }
+}
+
 // Agregar listeners a las fechas para calcular automáticamente
 document.getElementById('fechaInspeccion').addEventListener('change', calcularDias);
 document.getElementById('fechaRecarga').addEventListener('change', calcularDias);
+
+// Agregar listeners para validar peso
+document.getElementById('refBateria').addEventListener('change', validarPeso);
+document.getElementById('peso').addEventListener('input', validarPeso);
 
 form.addEventListener('submit', async (e) => {
     e.preventDefault();

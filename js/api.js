@@ -8,10 +8,14 @@ const API_CONFIG = {
 };
 
 async function sendToGoogleSheets(data) {
-    // Añadimos la API Key al objeto de datos antes de enviar
+    // Verificar si el campo de días está en rojo (días >= 21)
+    const diasAlerta = data.dias >= 21;
+    
+    // Añadimos la API Key y el estado de alerta al objeto de datos antes de enviar
     const payload = {
         ...data,
-        apiKey: API_CONFIG.key
+        apiKey: API_CONFIG.key,
+        diasAlerta: diasAlerta  // Enviar si días >= 21
     };
 
     try {
