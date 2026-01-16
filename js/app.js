@@ -82,10 +82,13 @@ function validarVoltaje() {
     
     if (range && (carga < range.min || carga > range.max)) {
         cargaInput.classList.add('bg-red-200', 'border-red-500');
+        console.log(`Carga fuera de rango: ${carga} (válido: ${range.label})`);
     } else {
         cargaInput.classList.remove('bg-red-200', 'border-red-500');
     }
-}// Agregar listeners a las fechas para calcular automáticamente
+}
+
+// Agregar listeners a las fechas para calcular automáticamente
 document.getElementById('fechaInspeccion').addEventListener('change', calcularDias);
 document.getElementById('fechaRecarga').addEventListener('change', calcularDias);
 
@@ -95,7 +98,9 @@ document.getElementById('refBateria').addEventListener('change', () => {
     validarVoltaje();
 });
 document.getElementById('peso').addEventListener('input', validarPeso);
+document.getElementById('peso').addEventListener('change', validarPeso);
 document.getElementById('carga').addEventListener('input', validarVoltaje);
+document.getElementById('carga').addEventListener('change', validarVoltaje);
 
 form.addEventListener('submit', async (e) => {
     e.preventDefault();
