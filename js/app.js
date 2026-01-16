@@ -2,6 +2,43 @@
 
 const form = document.getElementById('battery-form');
 
+// Función para calcular días entre dos fechas
+function calcularDias() {
+    const fechaInspeccion = document.getElementById('fechaInspeccion').value;
+    const fechaRecarga = document.getElementById('fechaRecarga').value;
+    const diasInput = document.getElementById('dias');
+    
+    if (fechaInspeccion && fechaRecarga) {
+        const fecha1 = new Date(fechaInspeccion);
+        const fecha2 = new Date(fechaRecarga);
+        
+        // Calcular la diferencia en milisegundos
+        const diferencia = Math.abs(fecha2 - fecha1);
+        
+        // Convertir a días
+        const dias = Math.floor(diferencia / (1000 * 60 * 60 * 24));
+        
+        diasInput.value = dias;
+        
+        // Marcar en rojo si es >= 21 días
+        if (dias >= 21) {
+            diasInput.classList.add('bg-red-200', 'border-red-500');
+            diasInput.classList.remove('bg-gray-100');
+        } else {
+            diasInput.classList.remove('bg-red-200', 'border-red-500');
+            diasInput.classList.add('bg-gray-100');
+        }
+    } else {
+        diasInput.value = '';
+        diasInput.classList.remove('bg-red-200', 'border-red-500');
+        diasInput.classList.add('bg-gray-100');
+    }
+}
+
+// Agregar listeners a las fechas para calcular automáticamente
+document.getElementById('fechaInspeccion').addEventListener('change', calcularDias);
+document.getElementById('fechaRecarga').addEventListener('change', calcularDias);
+
 form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
