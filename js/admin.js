@@ -100,21 +100,25 @@ function guardarBaterias(baterias) {
 
 async function syncBateriasConServer(baterias) {
     try {
-        const response = await fetch('/.netlify/functions/send-to-sheets', {
+        const response = await fetch('/.netlify/functions/referencias', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                action: 'guardarReferencias',
                 baterias: baterias,
                 timestamp: new Date().toISOString()
             })
         });
         
         if (response.ok) {
-            console.log('✅ Referencias sincronizadas con Google Sheets');
+            const data = await response.json();
+            console.log('✅ Referencias sincronizadas con Google Sheets:', data.count);
+            mostrarNotificacion('✅ Sincronizado con servidor');
+        } else {
+            console.warn('⚠️ Error al sincronizar');
         }
     } catch (error) {
         console.warn('⚠️ No se pudo sincronizar con servidor:', error.message);
+        mostrarNotificacion('⚠️ Error al sincronizar (sin conexión)');
     }
 }
 

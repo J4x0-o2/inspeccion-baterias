@@ -150,14 +150,19 @@ async function cargarReferenciasDelServer() {
         const data = await response.json();
         const referencias = data.referencias || [];
         
-        // Guardar en localStorage
+        console.log('✅ Referencias cargadas de Google Sheets:', referencias.length);
+        
+        // Guardar en localStorage para offline
         if (referencias.length > 0) {
             localStorage.setItem('baterias_referencias_admin', JSON.stringify(referencias));
             cargarOpcionesReferencias(referencias);
+        } else {
+            // Si Google Sheets está vacío, usar locales
+            cargarReferenciasLocales();
         }
     } catch (error) {
         console.warn('⚠️ No se pudo cargar referencias del servidor:', error.message);
-        // Usar referencias locales
+        // Usar referencias locales como fallback
         cargarReferenciasLocales();
     }
 }
@@ -167,18 +172,22 @@ function cargarReferenciasLocales() {
         const referenciasStr = localStorage.getItem('baterias_referencias_admin');
         if (referenciasStr) {
             const referencias = JSON.parse(referenciasStr);
+            console.log('📱 Usando referencias locales:', referencias.length);
             cargarOpcionesReferencias(referencias);
         } else {
-            // Cargar referencias por defecto
+            console.log('ℹ️ Sin referencias, usando valores por defecto');
             cargarReferenciasDefecto();
         }
     } catch (error) {
+        console.error('Error en cargarReferenciasLocales:', error);
         cargarReferenciasDefecto();
     }
 }
 
 function cargarOpcionesReferencias(referencias) {
     const select = document.getElementById('refBateria');
+    
+    if (!select) return;
     
     // Mantener la opción placeholder
     const placeholder = select.firstChild;
@@ -188,7 +197,7 @@ function cargarOpcionesReferencias(referencias) {
         select.removeChild(select.lastChild);
     }
     
-    // Agregar nuevas opciones
+    // Agregar nuevas opciones desde Google Sheets
     referencias.forEach(ref => {
         const option = document.createElement('option');
         option.value = ref.referencia || ref.id;
@@ -198,8 +207,7 @@ function cargarOpcionesReferencias(referencias) {
 }
 
 function cargarReferenciasDefecto() {
-    // Mantener las referencias hardcodeadas por defecto
-    // (ya están en el HTML)
+    // Mantener las referencias hardcodeadas por defecto del HTML
 }
 
 // Cargar referencias cuando el DOM esté listo
@@ -208,6 +216,7 @@ if (document.readyState === 'loading') {
 } else {
     cargarReferenciasDelServer();
 }
+
 
 // Función para calcular días entre dos fechas
 function calcularDias() {

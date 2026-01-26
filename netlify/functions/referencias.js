@@ -1,10 +1,8 @@
 /**
- * Netlify Function: Gestión de referencias de baterías
- * Lee y escribe referencias en Google Sheets
+ * Netlify Function: Gestión de referencias (Lee/Escribe en Google Sheets)
  */
 
 exports.handler = async (event, context) => {
-  // Solo acepta GET y POST
   if (!['GET', 'POST'].includes(event.httpMethod)) {
     return {
       statusCode: 405,
@@ -14,34 +12,36 @@ exports.handler = async (event, context) => {
 
   try {
     const GOOGLE_SHEETS_URL = process.env.GOOGLE_SHEETS_URL;
-    
-    if (!GOOGLE_SHEETS_URL) {
+    const GOOGLE_SHEETS_KEY = process.env.GOOGLE_SHEETS_KEY;
+
+    if (!GOOGLE_SHEETS_URL || !GOOGLE_SHEETS_KEY) {
       return {
         statusCode: 500,
         body: JSON.stringify({ error: 'Configuración incompleta' })
       };
     }
 
-    // GET: Obtener referencias
+    // GET: Obtener referencias desde Google Sheets
     if (event.httpMethod === 'GET') {
       const response = await fetch(GOOGLE_SHEETS_URL + '?action=getReferencias', {
         method: 'GET'
       });
 
-      const data = await response.text();
+      const text = await response.text();
       
       try {
-        const referencias = JSON.parse(data);
+        const referencias = JSON.parse(text);
         return {
           statusCode: 200,
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             ok: true,
-            referencias: referencias,
+            referencias: Array.isArray(referencias) ? referencias : [],
             timestamp: new Date().toISOString()
           })
         };
       } catch (e) {
+        // Si no es JSON válido, retornar array vacío
         return {
           statusCode: 200,
           headers: { 'Content-Type': 'application/json' },
@@ -54,13 +54,14 @@ exports.handler = async (event, context) => {
       }
     }
 
-    // POST: Guardar referencia
+    // POST: Guardar referencias en Google Sheets
     if (event.httpMethod === 'POST') {
       const datos = JSON.parse(event.body);
 
       const payload = {
-        action: 'addReferencia',
-        ...datos,
+        action: 'guardarReferencias',
+        apiKey: GOOGLE_SHEETS_KEY,
+        baterias: datos.baterias || [],
         timestamp: new Date().toISOString()
       };
 
@@ -70,14 +71,17 @@ exports.handler = async (event, context) => {
         body: JSON.stringify(payload)
       });
 
-      console.log(`[Referencias] Referencia guardada: ${datos.referencia}`);
+      const result = await response.json();
+
+      console.log(`[Referencias] Guardadas: ${payload.baterias.length} referencias`);
 
       return {
         statusCode: 200,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ok: true,
-          message: 'Referencia guardada',
+          message: 'Referencias guardadas en Google Sheets',
+          count: payload.baterias.length,
           timestamp: new Date().toISOString()
         })
       };
@@ -96,3 +100,4 @@ exports.handler = async (event, context) => {
     };
   }
 };
+
