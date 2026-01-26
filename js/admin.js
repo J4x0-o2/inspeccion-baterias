@@ -11,15 +11,18 @@ let user = null;
 
 // Inicializar Netlify Identity
 function inicializarIdentity() {
+    console.log('Inicializando Netlify Identity...');
+    console.log('netlifyIdentity disponible:', !!window.netlifyIdentity);
+    
     if (!window.netlifyIdentity) {
-        console.error('Netlify Identity no está disponible');
+        console.error('Netlify Identity widget no está disponible');
         document.getElementById('login-message').textContent = '❌ Error: Netlify Identity no está disponible';
         return;
     }
     
-    netlifyIdentity.init();
-    
+    // Ya está inicializado en el HTML, solo agregar listeners
     netlifyIdentity.on('init', (usuario) => {
+        console.log('Identity init, usuario:', usuario);
         if (!usuario) {
             mostrarLogin();
         } else {
@@ -29,14 +32,20 @@ function inicializarIdentity() {
     });
 
     netlifyIdentity.on('login', (usuario) => {
+        console.log('Usuario logueado:', usuario);
         user = usuario;
         mostrarPanel();
         location.reload();
     });
 
     netlifyIdentity.on('logout', () => {
+        console.log('Usuario deslogueado');
         user = null;
         location.reload();
+    });
+    
+    netlifyIdentity.on('error', (err) => {
+        console.error('Netlify Identity error:', err);
     });
 }
 
@@ -48,16 +57,16 @@ function mostrarLogin() {
     loginModal.classList.remove('hidden');
     document.querySelector('main').classList.add('hidden');
     
-    loginBtn.addEventListener('click', () => {
+    loginBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        console.log('Abriendo login...');
         try {
             netlifyIdentity.open('login');
         } catch (error) {
+            console.error('Error abriendo login:', error);
             loginMessage.textContent = '❌ Error: ' + error.message;
         }
     });
-    
-    // Debug
-    console.log('Netlify Identity disponible:', !!window.netlifyIdentity);
 }
 
 function mostrarPanel() {
@@ -272,10 +281,10 @@ function mostrarNotificacion(mensaje) {
 
 // ========== INICIALIZACIÓN ==========
 
-// Forzar autenticación al cargar
-if (window.netlifyIdentity) {
-    inicializarIdentity();
+// Iniciar cuando el DOM esté listo
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', inicializarIdentity);
 } else {
-    console.error('Netlify Identity widget no cargado');
-    document.getElementById('login-message').textContent = '❌ Error: Script de Netlify no cargado. Recarga la página.';
+    // El DOM ya está listo
+    inicializarIdentity();
 }

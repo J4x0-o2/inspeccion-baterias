@@ -97,6 +97,12 @@
     </div>
 
     <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
-    <script src="js/admin.js"></script>
+    <script>
+        // Asegurar que Netlify Identity esté listo antes de cargar admin.js
+        if (window.netlifyIdentity) {
+            window.netlifyIdentity.init();
+        }
+    </script>
+    <script src="js/admin.js" defer></script>
 </body>
 </html>
