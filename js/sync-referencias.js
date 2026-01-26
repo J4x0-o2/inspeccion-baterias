@@ -1,21 +1,24 @@
 /**
- * SINCRONIZADOR DE REFERENCIAS
- * Verifica cada 1 hora si hay cambios en Google Sheets
- * Muestra notificación persistente si hay cambios
+ * SINCRONIZADOR DE REFERENCIAS MEJORADO
+ * Verifica cambios en Google Sheets y actualiza automáticamente
+ * Sin necesidad de reload
  */
 
 const SYNC_INTERVAL = 60 * 60 * 1000; // 1 hora
 const REFERENCIAS_HASH_KEY = 'referencias_hash';
-let hayCambios = false;
+const REFERENCIAS_SYNC_KEY = 'referencias_ultima_sincro';
 
-// ========== HASH DE REFERENCIAS ==========
+// ========== CÁLCULO DE HASH ==========
 
 function calcularHash(referencias) {
     const str = JSON.stringify(referencias);
-    return str.split('').reduce((a, b) => {
-        a = ((a << 5) - a) + b.charCodeAt(0);
-        return a & a;
-    }, 0).toString(36);
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32bit integer
+    }
+    return Math.abs(hash).toString(36);
 }
 
 function obtenerHashLocal() {
@@ -24,100 +27,139 @@ function obtenerHashLocal() {
 
 function guardarHashLocal(hash) {
     localStorage.setItem(REFERENCIAS_HASH_KEY, hash);
+    localStorage.setItem(REFERENCIAS_SYNC_KEY, new Date().toISOString());
 }
 
-// ========== VERIFICACIÓN DE CAMBIOS ==========
+// ========== VERIFICACIÓN Y ACTUALIZACIÓN ==========
 
-async function verificarCambiosReferencias() {
+async function verificarYActualizarReferencias() {
     try {
+        console.log('[Sync Referencias] Verificando cambios...');
+        
         const response = await fetch('/.netlify/functions/referencias', {
-            method: 'GET'
+            method: 'GET',
+            cache: 'no-cache'
         });
         
-        if (!response.ok) throw new Error('Error al obtener referencias');
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
         
         const data = await response.json();
         const referencias = data.referencias || [];
         
-        const hashRemoto = calcularHash(referencias);
-        const hashLocal = obtenerHashLocal();
-        
-        // Si no hay hash local, es la primera vez
-        if (!hashLocal) {
-            guardarHashLocal(hashRemoto);
-            guardarReferenciasLocal(referencias);
+        if (!Array.isArray(referencias)) {
+            console.warn('[Sync Referencias] Respuesta inválida');
             return false;
         }
         
-        // Si los hashes son diferentes, hay cambios
-        if (hashRemoto !== hashLocal) {
-            console.log('🔄 Cambios detectados en referencias de Google Sheets');
+        const hashRemoto = calcularHash(referencias);
+        const hashLocal = obtenerHashLocal();
+        
+        // Primera vez
+        if (!hashLocal) {
             guardarHashLocal(hashRemoto);
-            guardarReferenciasLocal(referencias);
+            console.log('[Sync Referencias] ✅ Referencias inicializadas');
+            return false;
+        }
+        
+        // Detectar cambios
+        if (hashRemoto !== hashLocal) {
+            console.log('[Sync Referencias] 🔄 Cambios detectados');
+            guardarHashLocal(hashRemoto);
+            
+            // Actualizar el select sin reload
+            actualizarSelectReferencias(referencias);
             mostrarNotificacionActualizacion();
-            hayCambios = true;
+            
             return true;
         }
         
         return false;
+        
     } catch (error) {
-        console.warn('⚠️ Error verificando referencias:', error.message);
+        console.warn('[Sync Referencias] ⚠️ Error:', error.message);
         return false;
     }
 }
 
-function guardarReferenciasLocal(referencias) {
-    if (referencias.length > 0) {
-        localStorage.setItem('baterias_referencias_admin', JSON.stringify(referencias));
-        console.log('✅ Referencias guardadas localmente:', referencias.length);
-    }
-}
+// ========== ACTUALIZAR SELECT SIN RELOAD ==========
 
-// ========== NOTIFICACIÓN PERSISTENTE ==========
-
-function mostrarNotificacionActualizacion() {
-    // No mostrar si ya está visible
-    if (document.getElementById('update-notification')) {
+function actualizarSelectReferencias(referencias) {
+    const select = document.getElementById('refBateria');
+    if (!select) {
+        console.warn('[Sync Referencias] Select no encontrado');
         return;
     }
     
+    const valorActual = select.value;
+    
+    // Limpiar opciones (excepto placeholder)
+    while (select.options.length > 1) {
+        select.remove(1);
+    }
+    
+    // Agregar nuevas opciones
+    referencias.forEach(ref => {
+        const valor = ref.referencia || ref;
+        const opcion = document.createElement('option');
+        opcion.value = valor;
+        opcion.text = valor;
+        select.appendChild(opcion);
+    });
+    
+    // Restaurar selección si existía
+    if (valorActual && select.querySelector(`option[value="${valorActual}"]`)) {
+        select.value = valorActual;
+    }
+    
+    console.log(`[Sync Referencias] ✅ Select actualizado: ${referencias.length} referencias`);
+}
+
+// ========== NOTIFICACIÓN DE ACTUALIZACIÓN ==========
+
+function mostrarNotificacionActualizacion() {
+    // Remover notificación anterior si existe
+    const notifAnterior = document.getElementById('referencias-update-notification');
+    if (notifAnterior) {
+        notifAnterior.remove();
+    }
+    
     const notif = document.createElement('div');
-    notif.id = 'update-notification';
-    notif.className = 'fixed top-0 left-0 right-0 bg-blue-600 text-white p-4 shadow-lg z-[9998] animate-pulse';
+    notif.id = 'referencias-update-notification';
+    notif.className = 'fixed top-20 right-4 bg-green-500 text-white px-4 py-3 rounded-lg shadow-lg z-[9998] animate-bounce';
     notif.innerHTML = `
-        <div class="container mx-auto flex justify-between items-center gap-4">
-            <div class="flex-1">
-                <p class="font-bold text-lg">🔄 Nuevas referencias disponibles</p>
-                <p class="text-sm opacity-90">Se han actualizado las referencias de baterías. Recarga la página para ver los cambios.</p>
-            </div>
-            <button onclick="location.reload()" class="bg-white text-blue-600 px-6 py-2 rounded font-bold hover:bg-gray-100 transition whitespace-nowrap">
-                ↻ Recargar
-            </button>
-        </div>
+        <p class="font-semibold">✅ Referencias actualizadas</p>
+        <p class="text-sm opacity-90">Se sincronizaron nuevas referencias de Google Sheets</p>
     `;
     
-    document.body.insertBefore(notif, document.body.firstChild);
+    document.body.appendChild(notif);
     
-    // El aviso solo desaparece con reload
+    // Remover automáticamente después de 5 segundos
+    setTimeout(() => {
+        notif.style.transition = 'opacity 0.5s';
+        notif.style.opacity = '0';
+        setTimeout(() => notif.remove(), 500);
+    }, 5000);
 }
 
 // ========== INICIALIZACIÓN ==========
 
-function iniciarSincronizador() {
-    // Verificar inmediatamente al cargar
-    verificarCambiosReferencias();
+function iniciarSincronizadorReferencias() {
+    // Verificar inmediatamente
+    verificarYActualizarReferencias();
     
     // Luego cada 1 hora
     setInterval(() => {
-        verificarCambiosReferencias();
+        verificarYActualizarReferencias();
     }, SYNC_INTERVAL);
     
-    console.log('✅ Sincronizador de referencias iniciado (cada 1 hora)');
+    console.log('[Sync Referencias] ✅ Sincronizador iniciado (cada 60 minutos)');
 }
 
 // Iniciar cuando el DOM esté listo
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', iniciarSincronizador);
+    document.addEventListener('DOMContentLoaded', iniciarSincronizadorReferencias);
 } else {
-    iniciarSincronizador();
+    iniciarSincronizadorReferencias();
 }

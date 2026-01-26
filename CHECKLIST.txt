@@ -1,0 +1,119 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║              CHECKLIST: QUÉ FALTA PARA QUE ESTÉ PERFECTO                   ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+✅ COMPLETADO EN LA APP:
+═══════════════════════════════════════════════════════════════════════════
+
+✅ Referencias dinámicas 100%
+   • Sin hardcodeadas en HTML
+   • Se cargan de Google Sheets
+   • Se cachean localmente
+   • Se actualizan cada hora
+
+✅ Validaciones en formulario
+   • Referencia requerida
+   • Inspector requerido
+   • Carga (voltaje) requerida
+   • Peso requerido
+   • Alertas claras si falta algo
+
+✅ Sincronización de inspecciones
+   • Se guardan en IndexedDB localmente
+   • Se sincronizan a Google Sheets automáticamente
+   • Reintentos automáticos si falla
+   • Funciona offline
+
+✅ Archivos necesarios
+   • referencias.js → Obtiene referencias de Sheets
+   • send-to-sheets.js → Guarda inspecciones en Sheets
+   • referencias-sync.js → Sincroniza referencias
+   • sync.js → Motor de sincronización
+   • app.js → Lógica del formulario
+
+═══════════════════════════════════════════════════════════════════════════
+
+⚠️ LO QUE NECESITAS HACER (FUERA DE LA APP):
+═══════════════════════════════════════════════════════════════════════════
+
+1️⃣ CREAR GOOGLE SHEET
+   [ ] Ve a sheets.google.com
+   [ ] Crea nuevo Sheet con nombre: "Inspección Baterías"
+   [ ] Crea dos hojas (pestañas):
+       • "Referencias"
+       • "Inspecciones"
+
+2️⃣ CONFIGURAR HOJAS EN GOOGLE SHEETS
+   
+   HOJA "Referencias":
+   [ ] Fila 1 (encabezados): Referencia | Descripción | Estado
+   [ ] Agrega tus referencias:
+       - 244105506R | Batería modelo 1 | Activa
+       - 244103318R | Batería modelo 2 | Activa
+       (O las que necesites)
+
+   HOJA "Inspecciones":
+   [ ] Fila 1 (encabezados):
+       Referencia | Inspector | Carga (V) | Peso (kg) | Días | Fórmula | 
+       Observaciones | Fecha | Estado
+
+3️⃣ CREAR GOOGLE APPS SCRIPT
+   [ ] Abre Google Sheet
+   [ ] Extensiones > Apps Script
+   [ ] Copia el código de GOOGLE_SHEETS_SETUP.md
+   [ ] Reemplaza el contenido por defecto
+   [ ] Guarda
+
+4️⃣ DESPLEGAR GOOGLE APPS SCRIPT
+   [ ] Click en "Implementar"
+   [ ] "Nueva implementación"
+   [ ] Tipo: "Aplicación web"
+   [ ] Ejecutar como: Tu cuenta de Google
+   [ ] Quién tiene acceso: "Cualquiera que tenga el enlace"
+   [ ] Copia la URL (se ve así):
+       https://script.google.com/macros/s/AKfycby.../usercurrentapp
+
+5️⃣ CONFIGURAR EN NETLIFY
+   [ ] Ve a tu sitio en netlify.com
+   [ ] Site settings > Build & deploy > Environment variables
+   [ ] Add variable:
+       Name: GOOGLE_SHEET_URL
+       Value: [Pega la URL que copiaste en paso 4]
+   [ ] Redeploy tu sitio
+
+6️⃣ PROBAR TODO
+   [ ] Abre la app
+   [ ] En el formulario debería aparecer tu referencia en el select
+       (si no aparece = Google Sheet vacío o Apps Script no funciona)
+   [ ] Completa un formulario de prueba
+   [ ] Click "Guardar Inspección"
+   [ ] Debería guardar localmente
+   [ ] Verifica que aparezca en Google Sheets (hoja "Inspecciones")
+
+═══════════════════════════════════════════════════════════════════════════
+
+⚡ ESTADO ACTUAL:
+═══════════════════════════════════════════════════════════════════════════
+
+Hoja "Referencias": VACÍA → El select mostrará "-- Sin referencias disponibles --"
+
+Cuando agregues referencias en Google Sheets:
+1. La app las cargará automáticamente
+2. Aparecerán en el select en las próximas 2 maneras:
+   • Al recargar la página
+   • Automáticamente en la próxima sincronización (máximo 1 hora)
+
+═══════════════════════════════════════════════════════════════════════════
+
+📋 RESUMEN:
+
+La app está 100% lista del lado del código. Solo necesitas:
+1. Crear el Google Sheet
+2. Agregar tus referencias en la hoja "Referencias"
+3. Crear el Google Apps Script
+4. Desplegar Apps Script
+5. Configurar GOOGLE_SHEET_URL en Netlify
+
+¡Eso es todo! Después funciona automáticamente.
+
+═══════════════════════════════════════════════════════════════════════════

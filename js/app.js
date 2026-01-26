@@ -137,85 +137,9 @@ document.getElementById('reset-contador').addEventListener('click', reiniciarCon
 // Cargar el contador al iniciar
 cargarContador();
 
-// ============ CARGAR REFERENCIAS DINÁMICAMENTE ==========
-
-async function cargarReferenciasDelServer() {
-    try {
-        const response = await fetch('/.netlify/functions/referencias', {
-            method: 'GET'
-        });
-        
-        if (!response.ok) throw new Error('Error al obtener referencias');
-        
-        const data = await response.json();
-        const referencias = data.referencias || [];
-        
-        console.log('✅ Referencias cargadas de Google Sheets:', referencias.length);
-        
-        // Guardar en localStorage para offline
-        if (referencias.length > 0) {
-            localStorage.setItem('baterias_referencias_admin', JSON.stringify(referencias));
-            cargarOpcionesReferencias(referencias);
-        } else {
-            // Si Google Sheets está vacío, usar locales
-            cargarReferenciasLocales();
-        }
-    } catch (error) {
-        console.warn('⚠️ No se pudo cargar referencias del servidor:', error.message);
-        // Usar referencias locales como fallback
-        cargarReferenciasLocales();
-    }
-}
-
-function cargarReferenciasLocales() {
-    try {
-        const referenciasStr = localStorage.getItem('baterias_referencias_admin');
-        if (referenciasStr) {
-            const referencias = JSON.parse(referenciasStr);
-            console.log('📱 Usando referencias locales:', referencias.length);
-            cargarOpcionesReferencias(referencias);
-        } else {
-            console.log('ℹ️ Sin referencias, usando valores por defecto');
-            cargarReferenciasDefecto();
-        }
-    } catch (error) {
-        console.error('Error en cargarReferenciasLocales:', error);
-        cargarReferenciasDefecto();
-    }
-}
-
-function cargarOpcionesReferencias(referencias) {
-    const select = document.getElementById('refBateria');
-    
-    if (!select) return;
-    
-    // Mantener la opción placeholder
-    const placeholder = select.firstChild;
-    
-    // Limpiar opciones antiguas
-    while (select.children.length > 1) {
-        select.removeChild(select.lastChild);
-    }
-    
-    // Agregar nuevas opciones desde Google Sheets
-    referencias.forEach(ref => {
-        const option = document.createElement('option');
-        option.value = ref.referencia || ref.id;
-        option.textContent = ref.referencia || ref.id;
-        select.appendChild(option);
-    });
-}
-
-function cargarReferenciasDefecto() {
-    // Mantener las referencias hardcodeadas por defecto del HTML
-}
-
-// Cargar referencias cuando el DOM esté listo
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', cargarReferenciasDelServer);
-} else {
-    cargarReferenciasDelServer();
-}
+// ============ REFERENCIAS DINÁMICAS ==========
+// Las referencias se cargan desde Google Sheets en referencias-sync.js
+// No hay referencias hardcodeadas aquí
 
 
 // Función para calcular días entre dos fechas
@@ -263,28 +187,9 @@ const voltajeRanges = {
     '244103318R': { min: 12.70, max: 13.00, label: '12,70V - 13,00V' }
 };
 
-// Función para validar el peso según la referencia de batería
-function validarPeso() {
-    const refBateria = document.getElementById('refBateria').value;
-    const pesoInput = document.getElementById('peso');
-    const peso = parseFloat(pesoInput.value);
-    
-    if (!peso || isNaN(peso)) {
-        pesoInput.classList.remove('bg-red-200', 'border-red-500');
-        return;
-    }
-    
-    const range = pesoRanges[refBateria];
-    
-    if (range && (peso < range.min || peso > range.max)) {
-        pesoInput.classList.add('bg-red-200', 'border-red-500');
-    } else {
-        pesoInput.classList.remove('bg-red-200', 'border-red-500');
-    }
-}
+// ========== VALIDACIÓN DINÁMICA BASADA EN GOOGLE SHEETS ==========
 
-// Función para validar el voltaje según la referencia de batería
-function validarVoltaje() {
+function validarCargaDinamica() {
     const refBateria = document.getElementById('refBateria').value;
     const cargaInput = document.getElementById('carga');
     const carga = parseFloat(cargaInput.value);
@@ -294,13 +199,94 @@ function validarVoltaje() {
         return;
     }
     
-    const range = voltajeRanges[refBateria];
+    // Obtener referencia del cache con rangos de Google Sheets
+    const referencia = obtenerReferencia(refBateria);
     
-    if (range && (carga < range.min || carga > range.max)) {
-        cargaInput.classList.add('bg-red-200', 'border-red-500');
-        console.log(`Carga fuera de rango: ${carga} (válido: ${range.label})`);
+    if (referencia && referencia.cargaMin && referencia.cargaMax) {
+        const min = parseFloat(referencia.cargaMin);
+        const max = parseFloat(referencia.cargaMax);
+        
+        if (carga < min || carga > max) {
+            cargaInput.classList.add('bg-red-200', 'border-red-500');
+            console.log(`⚠️ Carga fuera de rango: ${carga}V (válido: ${min}V - ${max}V)`);
+        } else {
+            cargaInput.classList.remove('bg-red-200', 'border-red-500');
+        }
     } else {
-        cargaInput.classList.remove('bg-red-200', 'border-red-500');
+        // Si no hay rangos en Sheets, usar los hardcodeados (fallback)
+        const range = voltajeRanges[refBateria];
+        if (range && (carga < range.min || carga > range.max)) {
+            cargaInput.classList.add('bg-red-200', 'border-red-500');
+        } else {
+            cargaInput.classList.remove('bg-red-200', 'border-red-500');
+        }
+    }
+}
+
+function validarPesoDinamica() {
+    const refBateria = document.getElementById('refBateria').value;
+    const pesoInput = document.getElementById('peso');
+    const peso = parseFloat(pesoInput.value);
+    
+    if (!peso || isNaN(peso)) {
+        pesoInput.classList.remove('bg-red-200', 'border-red-500');
+        return;
+    }
+    
+    // Obtener referencia del cache con rangos de Google Sheets
+    const referencia = obtenerReferencia(refBateria);
+    
+    if (referencia && referencia.pesoMin && referencia.pesoMax) {
+        const min = parseFloat(referencia.pesoMin);
+        const max = parseFloat(referencia.pesoMax);
+        
+        if (peso < min || peso > max) {
+            pesoInput.classList.add('bg-red-200', 'border-red-500');
+            console.log(`⚠️ Peso fuera de rango: ${peso}kg (válido: ${min}kg - ${max}kg)`);
+        } else {
+            pesoInput.classList.remove('bg-red-200', 'border-red-500');
+        }
+    } else {
+        // Si no hay rangos en Sheets, usar los hardcodeados (fallback)
+        const range = pesoRanges[refBateria];
+        if (range && (peso < range.min || peso > range.max)) {
+            pesoInput.classList.add('bg-red-200', 'border-red-500');
+        } else {
+            pesoInput.classList.remove('bg-red-200', 'border-red-500');
+        }
+    }
+}
+
+// Función para calcular días entre dos fechas
+function calcularDias() {
+    const fechaInspeccion = document.getElementById('fechaInspeccion').value;
+    const fechaRecarga = document.getElementById('fechaRecarga').value;
+    const diasInput = document.getElementById('dias');
+    
+    if (fechaInspeccion && fechaRecarga) {
+        const fecha1 = new Date(fechaInspeccion);
+        const fecha2 = new Date(fechaRecarga);
+        
+        // Calcular la diferencia en milisegundos
+        const diferencia = Math.abs(fecha2 - fecha1);
+        
+        // Convertir a días
+        const dias = Math.floor(diferencia / (1000 * 60 * 60 * 24));
+        
+        diasInput.value = dias;
+        
+        // Marcar en rojo si es >= 21 días
+        if (dias >= 21) {
+            diasInput.classList.add('bg-red-200', 'border-red-500');
+            diasInput.classList.remove('bg-gray-100');
+        } else {
+            diasInput.classList.remove('bg-red-200', 'border-red-500');
+            diasInput.classList.add('bg-gray-100');
+        }
+    } else {
+        diasInput.value = '';
+        diasInput.classList.remove('bg-red-200', 'border-red-500');
+        diasInput.classList.add('bg-gray-100');
     }
 }
 
@@ -308,20 +294,22 @@ function validarVoltaje() {
 document.getElementById('fechaInspeccion').addEventListener('change', calcularDias);
 document.getElementById('fechaRecarga').addEventListener('change', calcularDias);
 
-// Agregar listeners para validar peso y voltaje
+// Agregar listeners para validar carga y peso (dinámicamente desde Google Sheets)
 document.getElementById('refBateria').addEventListener('change', () => {
-    validarPeso();
-    validarVoltaje();
+    validarCargaDinamica();
+    validarPesoDinamica();
 });
-document.getElementById('peso').addEventListener('input', validarPeso);
-document.getElementById('peso').addEventListener('change', validarPeso);
-document.getElementById('carga').addEventListener('input', validarVoltaje);
-document.getElementById('carga').addEventListener('change', validarVoltaje);
+document.getElementById('carga').addEventListener('input', validarCargaDinamica);
+document.getElementById('carga').addEventListener('change', validarCargaDinamica);
+document.getElementById('peso').addEventListener('input', validarPesoDinamica);
+document.getElementById('peso').addEventListener('change', validarPesoDinamica);
+
+// ============ EVENTO SUBMIT DEL FORMULARIO ==========
 
 form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    // Función auxiliar para obtener valores de forma segura y evitar el error "null"
+    // Función auxiliar para obtener valores de forma segura
     const getValue = (id) => {
         const el = document.getElementById(id);
         if (!el) {
@@ -331,31 +319,69 @@ form.addEventListener('submit', async (e) => {
         return el.value;
     };
 
-    // 1. Capturar datos coincidiendo EXACTAMENTE con los IDs del HTML
+    // VALIDACIÓN 1: Verificar que hay referencia seleccionada
+    const refBateria = getValue('refBateria');
+    if (!refBateria || refBateria.trim() === '') {
+        alert("⚠️ DEBES SELECCIONAR UNA REFERENCIA DE BATERÍA");
+        document.getElementById('refBateria').focus();
+        return;
+    }
+
+    // VALIDACIÓN 2: Verificar campos requeridos básicos
+    const inspector = getValue('inspector');
+    const carga = getValue('carga');
+    const peso = getValue('peso');
+    
+    if (!inspector || inspector.trim() === '') {
+        alert("⚠️ DEBES INGRESAR EL NOMBRE DEL INSPECTOR");
+        document.getElementById('inspector').focus();
+        return;
+    }
+    
+    if (!carga || parseFloat(carga) === 0) {
+        alert("⚠️ DEBES INGRESAR LA CARGA (VOLTAJE)");
+        document.getElementById('carga').focus();
+        return;
+    }
+    
+    if (!peso || parseFloat(peso) === 0) {
+        alert("⚠️ DEBES INGRESAR EL PESO");
+        document.getElementById('peso').focus();
+        return;
+    }
+
+    // 1. Capturar todos los datos
     const formData = {
         id: crypto.randomUUID(),
         timestamp: new Date().toISOString(),
         deviceType: getDeviceType(),
         
-        // Datos del Formulario
-        refBateria: getValue('refBateria'),
-        inspector: getValue('inspector'),
+        // Datos principales para Google Sheets
+        refBateria: refBateria,
+        inspector: inspector,
         fechaInspeccion: getValue('fechaInspeccion'),
         fechaFabricacion: getValue('fechaFabricacion'),
         fechaRecarga: getValue('fechaRecarga'),
         
+        // Inspección visual
         bornes: getValue('bornes'),
         calcomanias: getValue('calcomanias'),
         tapones: getValue('tapones'),
         fugas: getValue('fugas'),
         aspectoGeneral: getValue('aspectoGeneral'),
         
-        carga: parseFloat(getValue('carga')) || 0,
-        peso: parseFloat(getValue('peso')) || 0,
+        // Medidas técnicas
+        carga: parseFloat(carga) || 0,
+        peso: parseFloat(peso) || 0,
         formula: parseInt(getValue('formula')) || 0,
         dias: parseInt(getValue('dias')) || 0,
         
-        observaciones: getValue('observaciones')
+        // Observaciones
+        observaciones: getValue('observaciones'),
+        
+        // Formato simplificado para Google Sheets
+        fecha: getValue('fechaInspeccion'),
+        estado: 'Pendiente'
     };
 
     try {
@@ -366,7 +392,7 @@ form.addEventListener('submit', async (e) => {
         incrementarContador();
         
         // 4. Feedback visual
-        alert("REGISTRO GUARDADO LOCALMENTE");
+        alert("✅ REGISTRO GUARDADO LOCALMENTE");
         form.reset();
 
         // 5. Intentar sincronizar ahora mismo

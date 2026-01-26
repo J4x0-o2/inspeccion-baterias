@@ -1,7 +1,6 @@
 /**
- * Netlify Function: Proxy seguro para Google Sheets
- * Las credenciales se almacenan como variables de entorno en Netlify
- * El cliente NO tiene acceso directo a las credenciales
+ * Netlify Function: Guardar inspecciones en Google Sheets
+ * Proxy seguro que reenvía datos de inspecciones a Google Apps Script
  */
 
 exports.handler = async (event, context) => {
@@ -9,59 +8,75 @@ exports.handler = async (event, context) => {
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
-      body: JSON.stringify({ error: 'Método no permitido' })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ok: false, error: 'Método no permitido' })
     };
   }
 
   try {
-    // Obtener credenciales desde variables de entorno
-    const GOOGLE_SHEETS_URL = process.env.GOOGLE_SHEETS_URL;
-    const GOOGLE_SHEETS_KEY = process.env.GOOGLE_SHEETS_KEY;
+    // Obtener URL del Google Apps Script desde variables de entorno
+    const GOOGLE_SHEET_URL = process.env.GOOGLE_SHEET_URL;
 
-    if (!GOOGLE_SHEETS_URL || !GOOGLE_SHEETS_KEY) {
-      console.error('Variables de entorno no configuradas');
+    if (!GOOGLE_SHEET_URL) {
+      console.error('⚠️ GOOGLE_SHEET_URL no configurada');
       return {
         statusCode: 500,
-        body: JSON.stringify({ error: 'Configuración del servidor incompleta' })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ok: false,
+          error: 'Google Sheet no configurada en el servidor'
+        })
       };
     }
 
-    // Parsear datos del cliente
-    const data = JSON.parse(event.body);
+    // Parsear datos de la inspección
+    const datos = JSON.parse(event.body);
 
-    // Construir payload con credenciales seguras
-    const payload = {
-      ...data,
-      apiKey: GOOGLE_SHEETS_KEY,
-      timestamp: new Date().toISOString()
-    };
+    console.log('[Guardar Inspección] Enviando a Google Sheets...');
 
-    // Enviar a Google Sheets
-    const response = await fetch(GOOGLE_SHEETS_URL, {
+    // Enviar a Google Apps Script
+    const response = await fetch(GOOGLE_SHEET_URL, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json'
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify({
+        refBateria: datos.refBateria || '',
+        inspector: datos.inspector || '',
+        carga: datos.carga || '',
+        peso: datos.peso || '',
+        dias: datos.dias || '',
+        formula: datos.formula || '',
+        observaciones: datos.observaciones || '',
+        fecha: datos.fecha || new Date().toISOString().split('T')[0],
+        estado: datos.estado || 'Pendiente'
+      })
     });
 
-    // Registrar resultado
-    console.log(`[Google Sheets Sync] Status: ${response.status}, Data: ${JSON.stringify(data)}`);
+    if (!response.ok) {
+      throw new Error(`Google Sheets respondió con status ${response.status}`);
+    }
+
+    const result = await response.json();
+
+    console.log(`✅ [Guardar Inspección] Éxito para referencia: ${datos.refBateria}`);
 
     return {
       statusCode: 200,
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         ok: true,
-        message: 'Datos sincronizados correctamente',
+        message: 'Inspección guardada en Google Sheets',
         timestamp: new Date().toISOString()
       })
     };
 
   } catch (error) {
-    console.error('Error en send-to-sheets:', error.message);
-    
+    console.error('❌ [Guardar Inspección] Error:', error.message);
+
     return {
       statusCode: 500,
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         ok: false,
         error: error.message
