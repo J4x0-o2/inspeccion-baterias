@@ -22,7 +22,8 @@ class APIClient {
             const config = typeof getAPIConfig !== 'undefined' ? getAPIConfig() : null;
             
             if (!config) {
-                throw new Error('Configuración de API no disponible');
+                console.warn('Configuración de API no disponible, sync pausado.');
+                return { ok: false, retry: true};
             }
 
             const payload = {
