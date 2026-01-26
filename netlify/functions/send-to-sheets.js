@@ -34,23 +34,13 @@ exports.handler = async (event, context) => {
 
     console.log('[Guardar Inspección] Enviando a Google Sheets...');
 
-    // Enviar a Google Apps Script
+    // Enviar a Google Apps Script (pasar todos los datos)
     const response = await fetch(GOOGLE_SHEET_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        refBateria: datos.refBateria || '',
-        inspector: datos.inspector || '',
-        carga: datos.carga || '',
-        peso: datos.peso || '',
-        dias: datos.dias || '',
-        formula: datos.formula || '',
-        observaciones: datos.observaciones || '',
-        fecha: datos.fecha || new Date().toISOString().split('T')[0],
-        estado: datos.estado || 'Pendiente'
-      })
+      body: JSON.stringify(datos)
     });
 
     if (!response.ok) {
