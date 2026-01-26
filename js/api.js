@@ -12,38 +12,28 @@ class APIClient {
     }
 
     /**
-     * Envía datos a Google Sheets con reintentos automáticos
+     * Envía datos a Google Sheets a través de Netlify Function (más seguro)
      * @param {Object} data - Datos a sincronizar
      * @returns {Promise<Object>} - Resultado del envío
      */
     async sendToGoogleSheets(data) {
         try {
-            // Obtener configuración de forma segura desde config.js
-            const config = typeof getAPIConfig !== 'undefined' ? getAPIConfig() : null;
-            
-            if (!config) {
-                console.warn('Configuración de API no disponible, sync pausado.');
-                return { ok: false, retry: true};
-            }
-
-            const payload = {
-                ...data,
-                apiKey: config.key,
-                timestamp: new Date().toISOString()
-            };
-
-            const response = await this._fetchWithTimeout(config.url, {
+            // Usar Netlify Function como proxy (las credenciales están en el servidor)
+            const response = await this._fetchWithTimeout('/.netlify/functions/send-to-sheets', {
                 method: "POST",
-                mode: "no-cors",
-                cache: "no-cache",
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(data)
             }, 10000); // 10 segundos de timeout
 
-            // Con "no-cors" no podemos leer la respuesta, pero sin excepción = éxito
-            return { status: "success", sent: true };
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const result = await response.json();
+            console.log("Datos sincronizados con Google Sheets:", result);
+            return { status: "success", sent: true, ...result };
         } catch (error) {
             console.error("Error en envío a Google Sheets:", error.message);
             return { status: "error", message: error.message, sent: false };
