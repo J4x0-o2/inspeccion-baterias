@@ -12,14 +12,14 @@ class APIClient {
     }
 
     /**
-     * Envía datos a Google Sheets a través de Netlify Function (más seguro)
+     * Envía datos a Google Sheets a través de Vercel API (más seguro)
      * @param {Object} data - Datos a sincronizar
      * @returns {Promise<Object>} - Resultado del envío
      */
     async sendToGoogleSheets(data) {
         try {
-            // Usar Netlify Function como proxy (las credenciales están en el servidor)
-            const response = await this._fetchWithTimeout('/.netlify/functions/send-to-sheets', {
+            // Usar Vercel API como proxy (las credenciales están en el servidor)
+            const response = await this._fetchWithTimeout('/api/send-to-sheets', {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

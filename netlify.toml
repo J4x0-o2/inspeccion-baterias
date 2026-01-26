@@ -9,10 +9,10 @@
   status = 200
 
 [context.production]
-  environment = { NODE_VERSION = "18", GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbyV5epXHNj8tG9CpUbvXHt8AeVRbepZcuCmeqbUn0AxDIJppvZyasqwR71nn6hXLs4D/exec" }
+  environment = { NODE_VERSION = "18", GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbxxkhNdwTpGrx1DYsi3nW085n2ehU0hICKzTu-B4v89Il0Ghru5cjiDCRJ_6Tsd1kI3/exec" }
 
 [context.deploy-preview]
-  environment = { NODE_VERSION = "18", GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbyV5epXHNj8tG9CpUbvXHt8AeVRbepZcuCmeqbUn0AxDIJppvZyasqwR71nn6hXLs4D/exec" }
+  environment = { NODE_VERSION = "18", GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbxxkhNdwTpGrx1DYsi3nW085n2ehU0hICKzTu-B4v89Il0Ghru5cjiDCRJ_6Tsd1kI3/exec" }
 
 [context.branch-deploy]
-  environment = { NODE_VERSION = "18", GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbyV5epXHNj8tG9CpUbvXHt8AeVRbepZcuCmeqbUn0AxDIJppvZyasqwR71nn6hXLs4D/exec" }
+  environment = { NODE_VERSION = "18", GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbxxkhNdwTpGrx1DYsi3nW085n2ehU0hICKzTu-B4v89Il0Ghru5cjiDCRJ_6Tsd1kI3/exec" }

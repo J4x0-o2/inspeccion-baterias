@@ -1,15 +1,12 @@
 /**
- * Netlify Function: Obtener referencias desde Google Sheets
+ * Vercel API: Obtener referencias desde Google Sheets
  * Lee directamente del Apps Script de Google
  */
 
-exports.handler = async (event, context) => {
-  if (event.httpMethod !== 'GET') {
-    return {
-      statusCode: 405,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ok: false, error: 'Método no permitido' })
-    };
+export default async function handler(req, res) {
+  // Solo acepta GET
+  if (req.method !== 'GET') {
+    return res.status(405).json({ ok: false, error: 'Método no permitido' });
   }
 
   try {
@@ -17,14 +14,10 @@ exports.handler = async (event, context) => {
 
     if (!GOOGLE_SHEET_URL) {
       console.error('⚠️ GOOGLE_SHEET_URL no configurada en variables de entorno');
-      return {
-        statusCode: 500,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ok: false,
-          error: 'Google Sheet no configurada en netlify.toml'
-        })
-      };
+      return res.status(500).json({
+        ok: false,
+        error: 'Google Sheet no configurada en vercel.json'
+      });
     }
 
     console.log('[Referencias] URL:', GOOGLE_SHEET_URL.substring(0, 80) + '...');
@@ -69,31 +62,21 @@ exports.handler = async (event, context) => {
 
     console.log(`✅ [Referencias] ${referencias.length} referencias obtenidas`);
 
-    return {
-      statusCode: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'max-age=300' // Cache de 5 minutos
-      },
-      body: JSON.stringify({
-        ok: true,
-        referencias: referencias,
-        count: referencias.length,
-        timestamp: new Date().toISOString()
-      })
-    };
+    res.setHeader('Cache-Control', 'max-age=300'); // Cache de 5 minutos
+    return res.status(200).json({
+      ok: true,
+      referencias: referencias,
+      count: referencias.length,
+      timestamp: new Date().toISOString()
+    });
 
   } catch (error) {
     console.error('❌ [Referencias] Error:', error.message);
 
-    return {
-      statusCode: 500,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ok: false,
-        error: error.message,
-        timestamp: new Date().toISOString()
-      })
-    };
+    return res.status(500).json({
+      ok: false,
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
   }
-};
+}

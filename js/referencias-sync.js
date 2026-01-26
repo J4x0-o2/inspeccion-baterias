@@ -39,7 +39,7 @@ async function sincronizarReferenciasDesdeSheets() {
   try {
     console.log('[📡 Referencias] Obteniendo de Google Sheets...');
     
-    const response = await fetch('/.netlify/functions/referencias', {
+    const response = await fetch('/api/referencias', {
       method: 'GET',
       cache: 'no-cache',
       headers: {

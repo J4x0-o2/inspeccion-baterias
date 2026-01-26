@@ -1,16 +1,12 @@
 /**
- * Netlify Function: Guardar inspecciones en Google Sheets
+ * Vercel API: Guardar inspecciones en Google Sheets
  * Proxy seguro que reenvía datos de inspecciones a Google Apps Script
  */
 
-exports.handler = async (event, context) => {
+export default async function handler(req, res) {
   // Solo acepta POST
-  if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ok: false, error: 'Método no permitido' })
-    };
+  if (req.method !== 'POST') {
+    return res.status(405).json({ ok: false, error: 'Método no permitido' });
   }
 
   try {
@@ -19,30 +15,25 @@ exports.handler = async (event, context) => {
 
     if (!GOOGLE_SHEET_URL) {
       console.error('⚠️ ERROR: GOOGLE_SHEET_URL no configurada en variables de entorno');
-      return {
-        statusCode: 500,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ok: false,
-          error: 'GOOGLE_SHEET_URL no configurada en el servidor. Verifica netlify.toml'
-        })
-      };
+      return res.status(500).json({
+        ok: false,
+        error: 'GOOGLE_SHEET_URL no configurada en el servidor. Verifica vercel.json'
+      });
     }
 
     // Parsear datos de la inspección
     let datos;
     try {
-      datos = JSON.parse(event.body);
+      datos = req.body;
+      if (typeof datos === 'string') {
+        datos = JSON.parse(datos);
+      }
     } catch (e) {
       console.error('❌ Error parseando JSON:', e.message);
-      return {
-        statusCode: 400,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ok: false,
-          error: 'JSON inválido en el body de la solicitud'
-        })
-      };
+      return res.status(400).json({
+        ok: false,
+        error: 'JSON inválido en el body de la solicitud'
+      });
     }
 
     console.log('[Guardar Inspección] Enviando a Google Sheets...');
@@ -57,8 +48,7 @@ exports.handler = async (event, context) => {
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(datos),
-      timeout: 10000 // 10 segundos timeout
+      body: JSON.stringify(datos)
     });
 
     console.log('[Guardar Inspección] Respuesta de Google Sheets - Status:', response.status);
@@ -79,29 +69,21 @@ exports.handler = async (event, context) => {
 
     console.log(`✅ [Guardar Inspección] Éxito para referencia: ${datos.refBateria}`);
 
-    return {
-      statusCode: 200,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ok: true,
-        message: 'Inspección guardada en Google Sheets',
-        timestamp: new Date().toISOString(),
-        ...result
-      })
-    };
+    return res.status(200).json({
+      ok: true,
+      message: 'Inspección guardada en Google Sheets',
+      timestamp: new Date().toISOString(),
+      ...result
+    });
 
   } catch (error) {
     console.error('❌ [Guardar Inspección] Error:', error.message);
     console.error('❌ Stack:', error.stack);
 
-    return {
-      statusCode: 500,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ok: false,
-        error: error.message,
-        details: 'Revisa los logs en Netlify para más información'
-      })
-    };
+    return res.status(500).json({
+      ok: false,
+      error: error.message,
+      details: 'Revisa los logs en Vercel para más información'
+    });
   }
-};
+}

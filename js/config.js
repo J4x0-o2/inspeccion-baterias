@@ -6,7 +6,7 @@
 
 const API_ENDPOINTS = {
     googleSheets: {
-        url: "https://script.google.com/macros/s/AKfycbyV5epXHNj8tG9CpUbvXHt8AeVRbepZcuCmeqbUn0AxDIJppvZyasqwR71nn6hXLs4D/exec",
+        url: "https://script.google.com/macros/s/AKfycbxxkhNdwTpGrx1DYsi3nW085n2ehU0hICKzTu-B4v89Il0Ghru5cjiDCRJ_6Tsd1kI3/exec",
         key: "123KKj"
     }
 };

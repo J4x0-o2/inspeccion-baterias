@@ -1,0 +1,10 @@
+{
+  "projectName": "inspeccion-baterias",
+  "framework": "static",
+  "buildCommand": "echo 'Static site'",
+  "outputDirectory": ".",
+  "cleanUrls": true,
+  "env": {
+    "GOOGLE_SHEET_URL": "@google_sheet_url"
+  }
+}
