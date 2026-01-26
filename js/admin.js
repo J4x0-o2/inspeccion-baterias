@@ -1,112 +1,79 @@
 /**
  * Admin Panel - Gestión de referencias de baterías
- * Requiere autenticación con Netlify Identity
+ * Login simple con contraseña
  */
 
-// ========== VARIABLES GLOBALES ==========
+// ========== CONFIGURACIÓN ==========
+const ADMIN_PASSWORD = 'Admins@33';
 const BATERIAS_STORAGE_KEY = 'baterias_referencias_admin';
-let user = null;
+const SESSION_KEY = 'admin_logged_in';
+let isLoggedIn = false;
 
-// ========== NETLIFY IDENTITY ==========
+// ========== VERIFICACIÓN DE AUTENTICACIÓN ==========
 
-// Inicializar Netlify Identity
-function inicializarIdentity() {
-    console.log('Inicializando Netlify Identity...');
-    console.log('netlifyIdentity disponible:', !!window.netlifyIdentity);
+function verificarSesion() {
+    isLoggedIn = sessionStorage.getItem(SESSION_KEY) === 'true';
     
-    if (!window.netlifyIdentity) {
-        console.error('Netlify Identity widget no está disponible');
-        document.getElementById('login-message').textContent = '❌ Error: Netlify Identity no está disponible';
-        return;
-    }
-    
-    // Ya está inicializado en el HTML, solo agregar listeners
-    netlifyIdentity.on('init', (usuario) => {
-        console.log('Identity init, usuario:', usuario);
-        if (!usuario) {
-            mostrarLogin();
-        } else {
-            user = usuario;
-            mostrarPanel();
-        }
-    });
-
-    netlifyIdentity.on('login', (usuario) => {
-        console.log('Usuario logueado:', usuario);
-        user = usuario;
+    if (isLoggedIn) {
         mostrarPanel();
-        location.reload();
-    });
-
-    netlifyIdentity.on('logout', () => {
-        console.log('Usuario deslogueado');
-        user = null;
-        location.reload();
-    });
-    
-    netlifyIdentity.on('error', (err) => {
-        console.error('Netlify Identity error:', err);
-    });
+    } else {
+        mostrarLogin();
+    }
 }
 
 function mostrarLogin() {
-    const loginModal = document.getElementById('login-modal');
-    const loginBtn = document.getElementById('login-btn');
-    const loginMessage = document.getElementById('login-message');
-    
-    loginModal.classList.remove('hidden');
+    document.getElementById('login-modal').classList.remove('hidden');
     document.querySelector('main').classList.add('hidden');
-    
-    loginBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        console.log('Abriendo login...');
-        try {
-            netlifyIdentity.open('login');
-        } catch (error) {
-            console.error('Error abriendo login:', error);
-            loginMessage.textContent = '❌ Error: ' + error.message;
-        }
-    });
 }
 
 function mostrarPanel() {
-    const loginModal = document.getElementById('login-modal');
-    loginModal.classList.add('hidden');
+    document.getElementById('login-modal').classList.add('hidden');
     document.querySelector('main').classList.remove('hidden');
-    
-    // Cargar referencias
     cargarBaterias();
-    
-    // Manejar logout
-    document.getElementById('logout-btn').addEventListener('click', () => {
-        netlifyIdentity.logout();
-    });
 }
 
-// ========== GESTIÓN DE REFERENCIAS ==========
+// ========== MANEJO DEL LOGIN ==========
 
-// Estructura de una batería:
-// {
-//   id: "244105506R",
-//   referencia: "244105506R",
-//   cargaMin: 100,
-//   cargaMax: 150,
-//   pesoMin: 10,
-//   pesoMax: 15,
-//   fechaCreacion: "2026-01-26T..."
-// }
+document.getElementById('login-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    
+    const password = document.getElementById('admin-password').value;
+    const errorMsg = document.getElementById('login-error');
+    
+    if (password === ADMIN_PASSWORD) {
+        sessionStorage.setItem(SESSION_KEY, 'true');
+        isLoggedIn = true;
+        mostrarPanel();
+        document.getElementById('admin-password').value = '';
+    } else {
+        errorMsg.textContent = '❌ Contraseña incorrecta';
+        errorMsg.classList.remove('hidden');
+        document.getElementById('admin-password').value = '';
+    }
+});
+
+// ========== MANEJO DEL LOGOUT ==========
+
+document.getElementById('logout-btn').addEventListener('click', () => {
+    sessionStorage.removeItem(SESSION_KEY);
+    isLoggedIn = false;
+    location.reload();
+});
+
+// ========== GESTIÓN DE REFERENCIAS ==========
 
 function obtenerBaterias() {
     const datos = localStorage.getItem(BATERIAS_STORAGE_KEY);
     return datos ? JSON.parse(datos) : [];
 }
 
-async function guardarBaterias(baterias) {
-    // Guardar localmente
+function guardarBaterias(baterias) {
     localStorage.setItem(BATERIAS_STORAGE_KEY, JSON.stringify(baterias));
     syncBateriasConIndexedDB(baterias);
-    
-    // Guardar en Google Sheets a través de Netlify Function
+    syncBateriasConServer(baterias);
+}
+
+async function syncBateriasConServer(baterias) {
     try {
         const response = await fetch('/.netlify/functions/send-to-sheets', {
             method: 'POST',
@@ -126,16 +93,36 @@ async function guardarBaterias(baterias) {
     }
 }
 
+function syncBateriasConIndexedDB(baterias) {
+    if (!window.indexedDB) return;
+    
+    const request = indexedDB.open('BateriasDB', 1);
+    
+    request.onupgradeneeded = (event) => {
+        const db = event.target.result;
+        if (!db.objectStoreNames.contains('referencias')) {
+            db.createObjectStore('referencias', { keyPath: 'id' });
+        }
+    };
+    
+    request.onsuccess = (event) => {
+        const db = event.target.result;
+        const tx = db.transaction('referencias', 'readwrite');
+        const store = tx.objectStore('referencias');
+        
+        store.clear();
+        baterias.forEach(b => store.add(b));
+    };
+}
+
 function agregarBateria(datosForm) {
     const baterias = obtenerBaterias();
     
-    // Validar que no exista ya
     if (baterias.some(b => b.referencia === datosForm.referencia)) {
         alert('❌ Esta referencia ya existe');
         return false;
     }
     
-    // Crear nueva batería
     const nuevaBateria = {
         id: datosForm.referencia,
         referencia: datosForm.referencia,
@@ -146,7 +133,6 @@ function agregarBateria(datosForm) {
         fechaCreacion: new Date().toISOString()
     };
     
-    // Validar rangos
     if (nuevaBateria.cargaMin >= nuevaBateria.cargaMax) {
         alert('❌ La carga mínima debe ser menor a la máxima');
         return false;
@@ -177,30 +163,6 @@ function eliminarBateria(referencia) {
     return true;
 }
 
-// ========== SINCRONIZACIÓN CON INDEXEDDB ==========
-
-function syncBateriasConIndexedDB(baterias) {
-    if (!window.indexedDB) return;
-    
-    const request = indexedDB.open('BateriasDB', 1);
-    
-    request.onupgradeneeded = (event) => {
-        const db = event.target.result;
-        if (!db.objectStoreNames.contains('referencias')) {
-            db.createObjectStore('referencias', { keyPath: 'id' });
-        }
-    };
-    
-    request.onsuccess = (event) => {
-        const db = event.target.result;
-        const tx = db.transaction('referencias', 'readwrite');
-        const store = tx.objectStore('referencias');
-        
-        // Limpiar y recargar
-        store.clear();
-        baterias.forEach(b => store.add(b));
-    };
-}
 
 // ========== INTERFAZ DE USUARIO ==========
 
@@ -247,6 +209,15 @@ function eliminarYRecargar(referencia) {
     }
 }
 
+function mostrarNotificacion(mensaje) {
+    const notif = document.createElement('div');
+    notif.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-3 rounded-lg shadow-lg z-[9998]';
+    notif.textContent = mensaje;
+    document.body.appendChild(notif);
+    
+    setTimeout(() => notif.remove(), 3000);
+}
+
 // ========== FORM SUBMISSION ==========
 
 document.getElementById('admin-form').addEventListener('submit', (e) => {
@@ -261,30 +232,12 @@ document.getElementById('admin-form').addEventListener('submit', (e) => {
     };
     
     if (agregarBateria(datosForm)) {
-        // Limpiar form
         document.getElementById('admin-form').reset();
-        // Recargar lista
         cargarBaterias();
-        // Mostrar confirmación
         mostrarNotificacion('✅ Batería agregada correctamente');
     }
 });
 
-function mostrarNotificacion(mensaje) {
-    const notif = document.createElement('div');
-    notif.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-3 rounded-lg shadow-lg z-[9999]';
-    notif.textContent = mensaje;
-    document.body.appendChild(notif);
-    
-    setTimeout(() => notif.remove(), 3000);
-}
-
 // ========== INICIALIZACIÓN ==========
 
-// Iniciar cuando el DOM esté listo
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', inicializarIdentity);
-} else {
-    // El DOM ya está listo
-    inicializarIdentity();
-}
+document.addEventListener('DOMContentLoaded', verificarSesion);
