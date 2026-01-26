@@ -1,18 +1,19 @@
 /**
  * Admin Panel - Gestión de referencias de baterías
- * Login simple con contraseña
+ * Login seguro con validación en servidor
  */
 
 // ========== CONFIGURACIÓN ==========
-const ADMIN_PASSWORD = 'Admins@33';
 const BATERIAS_STORAGE_KEY = 'baterias_referencias_admin';
 const SESSION_KEY = 'admin_logged_in';
+const TOKEN_KEY = 'admin_token';
 let isLoggedIn = false;
 
 // ========== VERIFICACIÓN DE AUTENTICACIÓN ==========
 
 function verificarSesion() {
-    isLoggedIn = sessionStorage.getItem(SESSION_KEY) === 'true';
+    const token = sessionStorage.getItem(TOKEN_KEY);
+    isLoggedIn = !!token;
     
     if (isLoggedIn) {
         mostrarPanel();
@@ -34,28 +35,52 @@ function mostrarPanel() {
 
 // ========== MANEJO DEL LOGIN ==========
 
-document.getElementById('login-form').addEventListener('submit', (e) => {
+document.getElementById('login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     
     const password = document.getElementById('admin-password').value;
     const errorMsg = document.getElementById('login-error');
+    const submitBtn = document.querySelector('#login-form button[type="submit"]');
     
-    if (password === ADMIN_PASSWORD) {
-        sessionStorage.setItem(SESSION_KEY, 'true');
-        isLoggedIn = true;
-        mostrarPanel();
-        document.getElementById('admin-password').value = '';
-    } else {
-        errorMsg.textContent = '❌ Contraseña incorrecta';
+    // Deshabilitar botón y mostrar estado
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Validando...';
+    errorMsg.classList.add('hidden');
+    
+    try {
+        // Enviar contraseña a validar en servidor
+        const response = await fetch('/.netlify/functions/admin-login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: password })
+        });
+
+        const data = await response.json();
+
+        if (data.ok) {
+            // Guardar token en sesión
+            sessionStorage.setItem(TOKEN_KEY, data.token);
+            isLoggedIn = true;
+            document.getElementById('admin-password').value = '';
+            mostrarPanel();
+        } else {
+            errorMsg.textContent = '❌ ' + (data.error || 'Error en login');
+            errorMsg.classList.remove('hidden');
+            document.getElementById('admin-password').value = '';
+        }
+    } catch (error) {
+        errorMsg.textContent = '❌ Error de conexión: ' + error.message;
         errorMsg.classList.remove('hidden');
-        document.getElementById('admin-password').value = '';
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = '🔓 Acceder';
     }
 });
 
 // ========== MANEJO DEL LOGOUT ==========
 
 document.getElementById('logout-btn').addEventListener('click', () => {
-    sessionStorage.removeItem(SESSION_KEY);
+    sessionStorage.removeItem(TOKEN_KEY);
     isLoggedIn = false;
     location.reload();
 });
