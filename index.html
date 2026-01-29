@@ -339,6 +339,13 @@
     </div>
 
     <!-- Scripts -->
+    <!-- ORDEN CRÍTICO: No cambiar sin revisar dependencias -->
+    <!-- 1. config.js → Define constantes y referencias base -->
+    <!-- 2. database.js → API de IndexedDB (independiente) -->
+    <!-- 3. api.js → APIClient para comunicación con backend -->
+    <!-- 4. referencias-sync.js → Gestor de referencias (usa config.js y database.js) -->
+    <!-- 5. sync.js → Sincronizador automático (usa api.js y database.js) -->
+    <!-- 6. app.js → Lógica principal (usa todas las anteriores) -->
     <script src="js/config.js"></script>
     <script src="js/database.js"></script>
     <script src="js/api.js"></script>

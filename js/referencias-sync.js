@@ -5,9 +5,6 @@
  * - Gestiona referencias creadas por el usuario
  */
 
-const REFERENCIAS_STORAGE_KEY = 'baterias_referencias_cache';
-const CUSTOM_REFERENCIAS_KEY = 'baterias_referencias_custom';
-
 // ========== ALMACENAMIENTO EN CACHE ==========
 
 function guardarReferenciasEnCache(referencias) {

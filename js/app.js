@@ -397,8 +397,8 @@ form.addEventListener('submit', async (e) => {
         aspectoGeneral: getValue('aspectoGeneral'),
         
         // Medidas técnicas
-        carga: parseFloat(carga) || 0,
-        peso: parseFloat(peso) || 0,
+        carga: parseFloat(carga) ?? 0,
+        peso: parseFloat(peso) ?? 0,
         formula: parseInt(getValue('formula')) ?? 0,
         dias: parseInt(getValue('dias')) ?? 0,
         
@@ -605,7 +605,12 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ============ GESTIÓN DE CONFIGURACIÓN DE REFERENCIA ============
-const CONFIG_REF_KEY = 'baterias_config_referencia_actual';
+const CONFIG_REF_KEY = CUSTOM_REFERENCIAS_KEY; // Usar la constante de config.js
+
+// ✅ Nota: Los storage keys se centralizan ahora en config.js:
+// - REFERENCIAS_STORAGE_KEY: Caché de referencias base
+// - CUSTOM_REFERENCIAS_KEY: Referencias creadas por usuario
+// - CONFIG_REF_KEY: Referencia actualmente configurada
 
 // Estructura para almacenar la referencia configurada:
 // {
@@ -644,53 +649,55 @@ function limpiarConfigRef() {
   }
 }
 
-function abrirModalConfigRef() {
-  const modal = document.getElementById('modal-config-ref');
-  if (modal) {
-    modal.classList.remove('hidden');
-    // Llenar el select con las referencias disponibles
-    const selectRef = document.getElementById('config-ref-select');
-    
-    // Limpiar todas las opciones y optgroups previos
-    while (selectRef.options.length > 1) {
-      selectRef.remove(1);
-    }
-    // Limpiar optgroups
-    const optgroups = selectRef.querySelectorAll('optgroup');
-    optgroups.forEach(og => og.remove());
-    
-    // Agregar referencias base
-    const base = obtenerReferenciasDelCache();
-    base.forEach(ref => {
+// ========== FUNCIÓN AUXILIAR: CONSTRUIR SELECT DE REFERENCIAS ==========
+function construirSelectReferencias(selectEl) {
+  // Limpiar opciones previas (excepto la primera)
+  while (selectEl.options.length > 1) {
+    selectEl.remove(1);
+  }
+  // Limpiar optgroups
+  const optgroups = selectEl.querySelectorAll('optgroup');
+  optgroups.forEach(og => og.remove());
+
+  // Agregar referencias base
+  const base = obtenerReferenciasDelCache();
+  base.forEach(ref => {
+    const option = document.createElement('option');
+    option.value = ref.referencia;
+    option.text = ref.referencia;
+    option.dataset.cargaMin = ref.cargaMin || '';
+    option.dataset.cargaMax = ref.cargaMax || '';
+    option.dataset.pesoMin = ref.pesoMin || '';
+    option.dataset.pesoMax = ref.pesoMax || '';
+    selectEl.appendChild(option);
+  });
+
+  // Agregar separador si hay referencias creadas
+  const custom = obtenerReferenciasCustom();
+  if (custom.length > 0) {
+    const separator = document.createElement('optgroup');
+    separator.label = '─── Referencias Creadas ───';
+    selectEl.appendChild(separator);
+
+    custom.forEach(ref => {
       const option = document.createElement('option');
       option.value = ref.referencia;
-      option.text = ref.referencia;
+      option.text = `${ref.referencia} (*)`;
       option.dataset.cargaMin = ref.cargaMin || '';
       option.dataset.cargaMax = ref.cargaMax || '';
       option.dataset.pesoMin = ref.pesoMin || '';
       option.dataset.pesoMax = ref.pesoMax || '';
-      selectRef.appendChild(option);
+      separator.appendChild(option);
     });
-    
-    // Agregar separador si hay referencias creadas
-    const custom = obtenerReferenciasCustom();
-    if (custom.length > 0) {
-      const separator = document.createElement('optgroup');
-      separator.label = '─── Referencias Creadas ───';
-      selectRef.appendChild(separator);
-      
-      custom.forEach(ref => {
-        const option = document.createElement('option');
-        option.value = ref.referencia;
-        option.text = `${ref.referencia} (*)`;
-        option.dataset.cargaMin = ref.cargaMin || '';
-        option.dataset.cargaMax = ref.cargaMax || '';
-        option.dataset.pesoMin = ref.pesoMin || '';
-        option.dataset.pesoMax = ref.pesoMax || '';
-        separator.appendChild(option);
-      });
-    }
-    
+  }
+}
+
+function abrirModalConfigRef() {
+  const modal = document.getElementById('modal-config-ref');
+  if (modal) {
+    modal.classList.remove('hidden');
+    const selectRef = document.getElementById('config-ref-select');
+    construirSelectReferencias(selectRef);
     actualizarUIModalConfigRef();
   }
 }
@@ -840,43 +847,9 @@ function crearNuevaReferenciaConfig() {
   });
 
   if (resultado.ok) {
-    // Actualizar el select sin usar actualizarSelectReferencias (evita listeners duplicados)
+    // Actualizar el select usando la función centralizada
     const selectRef = document.getElementById('config-ref-select');
-    
-    // Limpiar optgroups previos
-    const optgroups = selectRef.querySelectorAll('optgroup');
-    optgroups.forEach(og => og.remove());
-    
-    // Agregar nuevamente con las referencias actualizadas
-    const base = obtenerReferenciasDelCache();
-    base.forEach(ref => {
-      const option = document.createElement('option');
-      option.value = ref.referencia;
-      option.text = ref.referencia;
-      option.dataset.cargaMin = ref.cargaMin || '';
-      option.dataset.cargaMax = ref.cargaMax || '';
-      option.dataset.pesoMin = ref.pesoMin || '';
-      option.dataset.pesoMax = ref.pesoMax || '';
-      selectRef.appendChild(option);
-    });
-    
-    const custom = obtenerReferenciasCustom();
-    if (custom.length > 0) {
-      const separator = document.createElement('optgroup');
-      separator.label = '─── Referencias Creadas ───';
-      selectRef.appendChild(separator);
-      
-      custom.forEach(ref => {
-        const option = document.createElement('option');
-        option.value = ref.referencia;
-        option.text = `${ref.referencia} (*)`;
-        option.dataset.cargaMin = ref.cargaMin || '';
-        option.dataset.cargaMax = ref.cargaMax || '';
-        option.dataset.pesoMin = ref.pesoMin || '';
-        option.dataset.pesoMax = ref.pesoMax || '';
-        separator.appendChild(option);
-      });
-    }
+    construirSelectReferencias(selectRef);
     
     // Seleccionar la nueva referencia
     selectRef.value = codigo;

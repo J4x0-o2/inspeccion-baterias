@@ -30,4 +30,9 @@ function getReferenciasBase() {
     return REFERENCIAS_BASE;
 }
 
-
+// ============================================
+// STORAGE KEYS - Gestión de localStorage
+// ============================================
+const REFERENCIAS_STORAGE_KEY = 'baterias_referencias_cache';
+const CUSTOM_REFERENCIAS_KEY = 'baterias_referencias_custom';
+const CONFIG_REF_KEY = 'baterias_config_referencia_actual';

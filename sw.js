@@ -8,10 +8,11 @@ const ASSETS = [
     '/',
     '/index.html',
     '/js/app.js',
-    '/js/database.js',
-    '/js/sync.js',
     '/js/api.js',
     '/js/config.js',
+    '/js/database.js',
+    '/js/referencias-sync.js',
+    '/js/sync.js',
     '/manifest.json',
     'https://cdn.tailwindcss.com'
 ];
