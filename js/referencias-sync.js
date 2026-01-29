@@ -1,8 +1,8 @@
 /**
- * SINCRONIZADOR DE REFERENCIAS (SIMPLIFICADO)
- * Carga referencias del endpoint /api/referencias (hardcodeadas en código)
- * Las almacena en localStorage para uso offline
- * Permite agregar nuevas referencias dinámicamente
+ * GESTOR DE REFERENCIAS
+ * - Carga referencias base desde config.js al inicio
+ * - Almacena en localStorage para uso offline
+ * - Gestiona referencias creadas por el usuario
  */
 
 const REFERENCIAS_STORAGE_KEY = 'baterias_referencias_cache';
@@ -36,7 +36,7 @@ function obtenerReferenciasCustom() {
     const custom = localStorage.getItem(CUSTOM_REFERENCIAS_KEY);
     return custom ? JSON.parse(custom) : [];
   } catch (e) {
-    console.error('❌ Error al obtener referencias personalizadas:', e);
+    console.error('❌ Error al obtener referencias creadas:', e);
     return [];
   }
 }
@@ -44,9 +44,9 @@ function obtenerReferenciasCustom() {
 function guardarReferenciasCustom(referencias) {
   try {
     localStorage.setItem(CUSTOM_REFERENCIAS_KEY, JSON.stringify(referencias));
-    console.log(`✅ [Referencias Custom] ${referencias.length} guardadas`);
+    console.log(`✅ [Referencias Creadas] ${referencias.length} guardadas`);
   } catch (e) {
-    console.error('❌ Error guardando referencias personalizadas:', e);
+    console.error('❌ Error guardando referencias creadas:', e);
   }
 }
 
@@ -117,28 +117,19 @@ function obtenerReferencia(codigo) {
 
 async function cargarReferencias() {
   try {
-    console.log('[📡] Cargando referencias...');
+    console.log('[📡] Cargando referencias base...');
     
-    const response = await fetch('/api/referencias', {
-      method: 'GET',
-      headers: { 'Accept': 'application/json' }
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    const data = await response.json();
-    const referencias = data.referencias || [];
+    // Cargar desde config.js (referencias base)
+    const referencias = getReferenciasBase ? getReferenciasBase() : [];
 
     if (Array.isArray(referencias) && referencias.length > 0) {
       guardarReferenciasEnCache(referencias);
       const todas = obtenerTodasLasReferencias();
       actualizarSelectReferencias(todas);
-      console.log(`✅ [Referencias] ${referencias.length} base + ${obtenerReferenciasCustom().length} personalizadas cargadas`);
+      console.log(`✅ [Referencias] ${referencias.length} base + ${obtenerReferenciasCustom().length} creadas cargadas`);
       return todas;
     } else {
-      throw new Error('Sin referencias en respuesta');
+      throw new Error('Sin referencias en config.js');
     }
   } catch (error) {
     console.warn(`⚠️ [Referencias] Error: ${error.message}`);
@@ -149,7 +140,7 @@ async function cargarReferencias() {
     const todas = [...cached, ...custom];
     
     if (todas.length > 0) {
-      console.log(`✅ [Referencias] ${cached.length} base + ${custom.length} personalizadas cargadas del caché (FALLBACK)`);
+      console.log(`✅ [Referencias] ${cached.length} base + ${custom.length} creadas cargadas del caché (FALLBACK)`);
       actualizarSelectReferencias(todas);
       return todas;
     } else {
