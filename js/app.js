@@ -605,7 +605,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ============ GESTIÓN DE CONFIGURACIÓN DE REFERENCIA ============
-const CONFIG_REF_KEY = CUSTOM_REFERENCIAS_KEY; // Usar la constante de config.js
 
 // ✅ Nota: Los storage keys se centralizan ahora en config.js:
 // - REFERENCIAS_STORAGE_KEY: Caché de referencias base
