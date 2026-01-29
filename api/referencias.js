@@ -1,9 +1,12 @@
 /**
  * Vercel API: Obtener referencias de baterías
- * Referencias hardcodeadas - sin dependencias externas
+ * Lee referencias desde config.js (definidas como base)
  */
 
-const REFERENCIAS_HARDCODEADAS = [
+// Importar referencias base desde config.js
+// En Vercel/Node.js usamos require
+const config = require('../js/config.js');
+const REFERENCIAS_HARDCODEADAS = config.REFERENCIAS_BASE || [
   {
     id: "1",
     referencia: "244105506R",
