@@ -21,27 +21,33 @@ jobs:
       - name: 📥 Checkout código
         uses: actions/checkout@v4
       
+      # Validaciones previas
+      - name: ✅ Validar manifest.json
+        run: python3 -m json.tool manifest.json > /dev/null
+      
+      - name: ✅ Validar vercel.json
+        run: python3 -m json.tool vercel.json > /dev/null
+      
+      - name: ✅ Validar package.json
+        run: python3 -m json.tool package.json > /dev/null
+      
+      - name: ✅ Verificar index.html existe
+        run: test -f index.html
+      
       # Instalar Vercel CLI
       - name: 📦 Instalar Vercel CLI
         run: npm install -g vercel@latest
       
-      # Pull del proyecto en Vercel (obtiene config)
-      - name: 🔗 Conectar con Vercel
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-        run: |
-          vercel pull --yes --environment=production
-      
-      # Desplegar a producción
+      # Desplegar directamente a Vercel sin autenticación previa
       - name: 🌐 Desplegar a Vercel (Producción)
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
-          vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
+          # Ejecutar deploy con token
+          vercel deploy --prod \
+            --token=${{ secrets.VERCEL_TOKEN }} \
+            --project-id=${{ secrets.VERCEL_PROJECT_ID }}
       
       # Verificar que el deployment fue exitoso
       - name: ✅ Verificar deployment
@@ -63,23 +69,3 @@ jobs:
         run: |
           echo "✅ Deployment exitoso"
           echo "La app está actualizada en producción"
-  
-  # Job opcional: Validaciones previas
-  validate-before-deploy:
-    name: Validar antes de desplegar
-    runs-on: ubuntu-latest
-    steps:
-      - name: 📥 Checkout código
-        uses: actions/checkout@v4
-      
-      - name: ✅ Validar manifest.json
-        run: python3 -m json.tool manifest.json > /dev/null
-      
-      - name: ✅ Validar vercel.json
-        run: python3 -m json.tool vercel.json > /dev/null
-      
-      - name: ✅ Validar package.json
-        run: python3 -m json.tool package.json > /dev/null
-      
-      - name: ✅ Verificar index.html existe
-        run: test -f index.html
