@@ -3,7 +3,7 @@
 # Se ejecuta en: push a master/main DESPUÉS de version-bump
 # ============================================
 
-name: 🚀 Deploy a Vercel
+name: Deploy a Vercel
 
 on:
   push:
@@ -42,12 +42,9 @@ jobs:
       - name: 🌐 Desplegar a Vercel (Producción)
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
-          # Ejecutar deploy con token
-          vercel deploy --prod \
-            --token=${{ secrets.VERCEL_TOKEN }} \
-            --project-id=${{ secrets.VERCEL_PROJECT_ID }}
+          # Ejecutar deploy con token (Vercel detecta automáticamente el proyecto)
+          vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
       
       # Verificar que el deployment fue exitoso
       - name: ✅ Verificar deployment
