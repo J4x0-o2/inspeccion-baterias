@@ -1,5 +1,4 @@
 /**
- * Vercel API: Obtener referencias de baterías
  * Devuelve las referencias base definidas en config.js
  * Solo referencias públicas, sin datos sensibles
  */
@@ -32,25 +31,8 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('❌ [Referencias] Error:', error.message);
 
-    // Fallback: referencias hardcodeadas como último recurso
-    const fallbackRefs = [
-      {
-        id: "1",
-        referencia: "244105506R",
-        cargaMin: 12.7,
-        cargaMax: 12.95,
-        pesoMin: 14.8,
-        pesoMax: 16.1
-      },
-      {
-        id: "2",
-        referencia: "244103318R",
-        cargaMin: 12.7,
-        cargaMax: 13.01,
-        pesoMin: 16.55,
-        pesoMax: 17.97
-      }
-    ];
+    // Fallback: usar referencias de config.js como último recurso
+    const fallbackRefs = config.REFERENCIAS_BASE || [];
 
     return res.status(200).json({
       ok: true,
@@ -58,7 +40,5 @@ export default async function handler(req, res) {
       count: fallbackRefs.length,
       timestamp: new Date().toISOString()
     });
-  }
-}
   }
 }

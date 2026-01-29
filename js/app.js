@@ -399,8 +399,8 @@ form.addEventListener('submit', async (e) => {
         // Medidas técnicas
         carga: parseFloat(carga) || 0,
         peso: parseFloat(peso) || 0,
-        formula: parseInt(getValue('formula')) || 0,
-        dias: parseInt(getValue('dias')) || 0,
+        formula: parseInt(getValue('formula')) ?? 0,
+        dias: parseInt(getValue('dias')) ?? 0,
         
         // Observaciones
         observaciones: getValue('observaciones'),
